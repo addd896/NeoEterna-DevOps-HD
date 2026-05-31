@@ -1,0 +1,6 @@
+node_modules
+.env
+*.log
+sonar-scanner*
+sonar-scanner.zip
+.scannerwork
