@@ -19,16 +19,18 @@ pipeline {
         }
 
         stage('Build') {
-            steps {
-                echo '========== STAGE 1: BUILD =========='
-                echo 'Tool: npm'
-                dir('backEnd') {
-                    bat 'npm install'
-                    echo "Build artefact: node_modules installed successfully"
-                    echo "Version: ${env.DOCKER_TAG}"
-                }
-            }
+    steps {
+        echo '========== STAGE 1: BUILD =========='
+        echo 'Tool: npm + Docker'
+        dir('backEnd') {
+            bat 'npm install'
+            bat "docker build -t %DOCKER_IMAGE%:%DOCKER_TAG% ."
+            bat "docker save %DOCKER_IMAGE%:%DOCKER_TAG% -o neoeterna-%DOCKER_TAG%.tar"
+            echo "Build artefact saved: neoeterna-%DOCKER_TAG%.tar"
+            echo "Version: ${env.DOCKER_TAG}"
         }
+    }
+}
 
         stage('Test') {
             steps {
@@ -113,19 +115,21 @@ pipeline {
 }
 
         stage('Release') {
-            steps {
-                echo '========== STAGE 6: RELEASE =========='
-                echo 'Tool: Docker tag + GitHub'
-                dir('backEnd') {
-                    bat "docker tag %DOCKER_IMAGE%:%DOCKER_TAG% %DOCKER_IMAGE%:latest"
-                    echo "Released: ${env.DOCKER_IMAGE}:${env.DOCKER_TAG}"
-                    echo "Tagged as latest for production"
-                    }
+    steps {
+        echo '========== STAGE 6: RELEASE =========='
+        echo 'Tool: Docker tag + Git tag'
+        dir('backEnd') {
+            bat "docker tag %DOCKER_IMAGE%:%DOCKER_TAG% %DOCKER_IMAGE%:staging"
+            bat "docker tag %DOCKER_IMAGE%:%DOCKER_TAG% %DOCKER_IMAGE%:production"
+            bat "docker tag %DOCKER_IMAGE%:%DOCKER_TAG% %DOCKER_IMAGE%:latest"
+            echo "Staging image: ${env.DOCKER_IMAGE}:staging"
+            echo "Production image: ${env.DOCKER_IMAGE}:production"
+            echo "Released: ${env.DOCKER_IMAGE}:${env.DOCKER_TAG}"
+        }
         bat 'git describe --tags'
         echo "Git release tag confirmed for production promotion"
-                }
-            }
-        }
+    }
+}
 
         stage('Monitoring') {
             steps {
