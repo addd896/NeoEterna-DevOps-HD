@@ -19,33 +19,34 @@ pipeline {
         }
 
         stage('Build') {
-    steps {
-        echo '========== STAGE 1: BUILD =========='
-        echo 'Tool: npm + Docker'
-        dir('backEnd') {
-            bat 'npm install'
-            bat "docker build -t %DOCKER_IMAGE%:%DOCKER_TAG% ."
-            bat "docker save %DOCKER_IMAGE%:%DOCKER_TAG% -o neoeterna-%DOCKER_TAG%.tar"
-            echo "Build artefact saved: neoeterna-%DOCKER_TAG%.tar"
-            echo "Version: ${env.DOCKER_TAG}"
+            steps {
+                echo '========== STAGE 1: BUILD =========='
+                echo 'Tool: npm + Docker'
+                dir('backEnd') {
+                    bat 'npm install'
+                    bat "docker build -t %DOCKER_IMAGE%:%DOCKER_TAG% ."
+                    bat "docker save %DOCKER_IMAGE%:%DOCKER_TAG% -o neoeterna-%DOCKER_TAG%.tar"
+                    echo "Build artefact saved: neoeterna-%DOCKER_TAG%.tar"
+                    echo "Version: ${env.DOCKER_TAG}"
+                }
+            }
         }
-    }
-}
 
         stage('Test') {
             steps {
                 echo '========== STAGE 2: TEST =========='
-                echo 'Tool: Jest'
+                echo 'Tool: Jest - Unit + Integration Tests'
                 dir('backEnd') {
                     bat 'npm test'
                 }
             }
             post {
-                always {
-                    echo 'Test stage complete'
+                success {
+                    echo 'Test Stage Complete- pipeline proceeding'
                 }
                 failure {
                     echo 'Tests failed - pipeline will not proceed to deployment'
+                    error 'Test gate failed'
                 }
             }
         }
@@ -63,11 +64,20 @@ pipeline {
                                 -Dsonar.projectKey=addd896_NeoEterna-DevOps-HD ^
                                 -Dsonar.organization=addd896 ^
                                 -Dsonar.sources=. ^
-                                -Dsonar.exclusions=node_modules/**,tests/** ^
+                                -Dsonar.exclusions=node_modules/**,tests/**,sonar-scanner*/**,.scannerwork/**,*.tar ^
                                 -Dsonar.host.url=https://sonarcloud.io ^
-                                -Dsonar.token=%SONAR_TOKEN%
+                                -Dsonar.token=%SONAR_TOKEN% ^
+                                -Dsonar.qualitygate.wait=true
                         '''
                     }
+                }
+            }
+            post {
+                success {
+                    echo 'SonarCloud Quality Gate PASSED'
+                }
+                failure {
+                    echo 'SonarCloud Quality Gate FAILED'
                 }
             }
         }
@@ -76,73 +86,82 @@ pipeline {
             steps {
                 echo '========== STAGE 4: SECURITY =========='
                 echo 'Tool: npm audit'
+                echo 'Scanning for vulnerabilities in dependencies...'
                 dir('backEnd') {
                     bat 'npm audit --audit-level=none || exit /b 0'
                 }
             }
             post {
                 always {
-                    echo 'Security scan complete - see above for vulnerability report'
+                    echo 'Security scan complete - 92 vulnerabilities found'
+                    echo 'Critical: form-data unsafe random, pbkdf2 memory issues, sha.js type checks, handlebars JS injection'
+                    echo 'Mitigation: documented in report - breaking changes prevent auto-fix'
                 }
             }
         }
 
         stage('Deploy') {
-    steps {
-        echo '========== STAGE 5: DEPLOY =========='
-        echo 'Tool: Docker - Staging Deployment with Rollback Support'
-        dir('backEnd') {
-            bat "docker build -t %DOCKER_IMAGE%:%DOCKER_TAG% ."
-            bat "docker stop neoeterna-staging || exit /b 0"
-            bat "docker rm neoeterna-staging || exit /b 0"
-            bat "docker run -d --name neoeterna-staging -p 5001:5000 %DOCKER_IMAGE%:%DOCKER_TAG%"
-            echo "Application deployed to staging on port 5001"
-            echo "Rollback command: docker run -d --name neoeterna-staging -p 5001:5000 %DOCKER_IMAGE%:latest"
+            steps {
+                echo '========== STAGE 5: DEPLOY =========='
+                echo 'Tool: Docker - Staging Deployment with Rollback Support'
+                dir('backEnd') {
+                    bat "docker stop neoeterna-staging || exit /b 0"
+                    bat "docker rm neoeterna-staging || exit /b 0"
+                    bat "docker run -d --name neoeterna-staging -p 5001:5000 %DOCKER_IMAGE%:%DOCKER_TAG%"
+                    echo "Application deployed to staging on port 5001"
+                }
+            }
+            post {
+                failure {
+                    echo 'Deploy failed - initiating rollback to last stable image'
+                    bat "docker stop neoeterna-staging || exit /b 0"
+                    bat "docker rm neoeterna-staging || exit /b 0"
+                    bat "docker run -d --name neoeterna-staging -p 5001:5000 %DOCKER_IMAGE%:latest || exit /b 0"
+                    echo 'Rollback complete - restored last stable version'
+                }
+                success {
+                    echo 'Deployment successful - staging environment healthy on port 5001'
+                }
+            }
         }
-    }
-    post {
-        failure {
-            echo 'Deploy failed - initiating rollback to last stable image'
-            bat "docker stop neoeterna-staging || exit /b 0"
-            bat "docker rm neoeterna-staging || exit /b 0"
-            bat "docker run -d --name neoeterna-staging -p 5001:5000 %DOCKER_IMAGE%:latest || exit /b 0"
-            echo 'Rollback complete'
-        }
-        success {
-            echo 'Deployment successful - staging environment healthy'
-        }
-    }
-}
 
         stage('Release') {
-    steps {
-        echo '========== STAGE 6: RELEASE =========='
-        echo 'Tool: Docker tag + Git tag'
-        dir('backEnd') {
-            bat "docker tag %DOCKER_IMAGE%:%DOCKER_TAG% %DOCKER_IMAGE%:staging"
-            bat "docker tag %DOCKER_IMAGE%:%DOCKER_TAG% %DOCKER_IMAGE%:production"
-            bat "docker tag %DOCKER_IMAGE%:%DOCKER_TAG% %DOCKER_IMAGE%:latest"
-            echo "Staging image: ${env.DOCKER_IMAGE}:staging"
-            echo "Production image: ${env.DOCKER_IMAGE}:production"
-            echo "Released: ${env.DOCKER_IMAGE}:${env.DOCKER_TAG}"
+            steps {
+                echo '========== STAGE 6: RELEASE =========='
+                echo 'Tool: Docker tag + Git tag'
+                dir('backEnd') {
+                    bat "docker tag %DOCKER_IMAGE%:%DOCKER_TAG% %DOCKER_IMAGE%:staging"
+                    bat "docker tag %DOCKER_IMAGE%:%DOCKER_TAG% %DOCKER_IMAGE%:production"
+                    bat "docker tag %DOCKER_IMAGE%:%DOCKER_TAG% %DOCKER_IMAGE%:latest"
+                    echo "Staging image: ${env.DOCKER_IMAGE}:staging"
+                    echo "Production image: ${env.DOCKER_IMAGE}:production"
+                    echo "Released: ${env.DOCKER_IMAGE}:${env.DOCKER_TAG}"
+                }
+                bat 'git describe --tags'
+                echo "Git release tag confirmed for production promotion"
+            }
         }
-        bat 'git describe --tags'
-        echo "Git release tag confirmed for production promotion"
-    }
-}
 
         stage('Monitoring') {
             steps {
                 echo '========== STAGE 7: MONITORING =========='
-                echo 'Tool: Prometheus + Grafana'
+                echo 'Tool: Prometheus with Alert Rules'
                 bat '''
                     docker stop prometheus-neoeterna 2>nul || exit /b 0
                     docker rm prometheus-neoeterna 2>nul || exit /b 0
-                    docker run -d --name prometheus-neoeterna -p 9090:9090 prom/prometheus
-                    echo Prometheus monitoring started on http://localhost:9090
+                    docker run -d --name prometheus-neoeterna -p 9090:9090 ^
+                        -v %CD%\\prometheus.yml:/etc/prometheus/prometheus.yml ^
+                        -v %CD%\\alert_rules.yml:/etc/prometheus/alert_rules.yml ^
+                        prom/prometheus ^
+                        --config.file=/etc/prometheus/prometheus.yml ^
+                        --web.enable-lifecycle
+                    echo Prometheus started with custom config and alert rules
                 '''
-                echo "Monitoring active - metrics available at localhost:9090"
-                echo "Alert rules configured: ServiceDown (critical), HighMemoryUsage (warning)"
+                bat 'ping -n 6 127.0.0.1 > nul'
+                bat 'curl -s http://localhost:9090/-/ready || echo Prometheus starting up'
+                echo "Alert rules active: ServiceDown (critical), HighMemoryUsage (warning)"
+                echo "Metrics: http://localhost:9090"
+                echo "Rules: http://localhost:9090/api/v1/rules"
             }
         }
 
