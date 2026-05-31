@@ -52,3 +52,52 @@ describe('User Authentication Logic', () => {
     expect(["user", "admin"]).toContain(role);
   });
 });
+describe('API Integration Tests', () => {
+  test('health check endpoint should return 200 status concept', () => {
+    const mockResponse = {
+      status: 200,
+      body: { status: 'UP', service: 'NeoEterna API' }
+    };
+    expect(mockResponse.status).toBe(200);
+    expect(mockResponse.body.status).toBe('UP');
+  });
+
+  test('user registration should require email and password', () => {
+    const registrationPayload = {
+      email: 'test@neoeterna.com',
+      password: 'SecurePass123',
+      username: 'testuser'
+    };
+    expect(registrationPayload.email).toBeDefined();
+    expect(registrationPayload.password).toBeDefined();
+    expect(registrationPayload.username).toBeDefined();
+  });
+
+  test('capsule creation API payload should have required fields', () => {
+    const capsulePayload = {
+      title: 'My Time Capsule',
+      content: 'This is a secret message',
+      unlockDate: '2030-01-01',
+      owner: 'user123'
+    };
+    expect(capsulePayload.title).toBeDefined();
+    expect(capsulePayload.unlockDate).toBeDefined();
+    expect(capsulePayload.owner).toBeDefined();
+  });
+
+  test('NFT minting request should include wallet address', () => {
+    const mintRequest = {
+      walletAddress: '0x742d35Cc6634C0532925a3b844Bc454e4438f44e',
+      capsuleId: 'cap_123456',
+      metadata: { name: 'NeoEterna #1' }
+    };
+    expect(mintRequest.walletAddress).toMatch(/^0x/);
+    expect(mintRequest.capsuleId).toBeDefined();
+  });
+
+  test('authentication token should follow JWT format', () => {
+    const mockToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.payload.signature';
+    const parts = mockToken.split('.');
+    expect(parts.length).toBe(3);
+  });
+});

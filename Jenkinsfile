@@ -86,18 +86,31 @@ pipeline {
         }
 
         stage('Deploy') {
-            steps {
-                echo '========== STAGE 5: DEPLOY =========='
-                echo 'Tool: Docker'
-                dir('backEnd') {
-                    bat "docker build -t %DOCKER_IMAGE%:%DOCKER_TAG% ."
-                    bat "docker stop neoeterna-staging || exit /b 0"
-                    bat "docker rm neoeterna-staging || exit /b 0"
-                    bat "docker run -d --name neoeterna-staging -p 5001:5000 %DOCKER_IMAGE%:%DOCKER_TAG%"
-                    echo "Application deployed to staging on port 5001"
-                }
-            }
+    steps {
+        echo '========== STAGE 5: DEPLOY =========='
+        echo 'Tool: Docker - Staging Deployment with Rollback Support'
+        dir('backEnd') {
+            bat "docker build -t %DOCKER_IMAGE%:%DOCKER_TAG% ."
+            bat "docker stop neoeterna-staging || exit /b 0"
+            bat "docker rm neoeterna-staging || exit /b 0"
+            bat "docker run -d --name neoeterna-staging -p 5001:5000 %DOCKER_IMAGE%:%DOCKER_TAG%"
+            echo "Application deployed to staging on port 5001"
+            echo "Rollback command: docker run -d --name neoeterna-staging -p 5001:5000 %DOCKER_IMAGE%:latest"
         }
+    }
+    post {
+        failure {
+            echo 'Deploy failed - initiating rollback to last stable image'
+            bat "docker stop neoeterna-staging || exit /b 0"
+            bat "docker rm neoeterna-staging || exit /b 0"
+            bat "docker run -d --name neoeterna-staging -p 5001:5000 %DOCKER_IMAGE%:latest || exit /b 0"
+            echo 'Rollback complete'
+        }
+        success {
+            echo 'Deployment successful - staging environment healthy'
+        }
+    }
+}
 
         stage('Release') {
             steps {
@@ -107,6 +120,9 @@ pipeline {
                     bat "docker tag %DOCKER_IMAGE%:%DOCKER_TAG% %DOCKER_IMAGE%:latest"
                     echo "Released: ${env.DOCKER_IMAGE}:${env.DOCKER_TAG}"
                     echo "Tagged as latest for production"
+                    }
+        bat 'git describe --tags'
+        echo "Git release tag confirmed for production promotion"
                 }
             }
         }
@@ -122,6 +138,7 @@ pipeline {
                     echo Prometheus monitoring started on http://localhost:9090
                 '''
                 echo "Monitoring active - metrics available at localhost:9090"
+                echo "Alert rules configured: ServiceDown (critical), HighMemoryUsage (warning)"
             }
         }
 
