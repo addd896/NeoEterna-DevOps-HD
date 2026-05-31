@@ -1,0 +1,20 @@
+import axios from "./axiosInstance";
+
+/**
+ * Fetches the NFT details associated with a given capsule ID.
+ *
+ * @param {string} capsuleId - The ID of the capsule whose NFT you want to retrieve.
+ * @returns {Promise<Object>} - The NFT metadata object.
+ *
+ * Example response: {
+ *   capsuleId: "abc123",
+ *   tokenId: "1",
+ *   owner: "0x...",
+ *   mintTxHash: "...",
+ *   ...
+ * }
+ */
+export const fetchNFTDetail = async (capsuleId) => {
+  const res = await axios.get(`/nft/detail/${capsuleId}`); // Makes GET request to /api/nft/detail/:capsuleId
+  return res.data; // Returns the full response body (assumed to be NFT object)
+};
