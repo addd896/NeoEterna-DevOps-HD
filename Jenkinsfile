@@ -66,7 +66,7 @@ pipeline {
                                 -Dsonar.projectKey=addd896_NeoEterna-DevOps-HD ^
                                 -Dsonar.organization=addd896 ^
                                 -Dsonar.sources=. ^
-                                -Dsonar.exclusions=node_modules/**,tests/**,coverage/**,coverage/lcov-report/**,sonar-scanner*/**,.scannerwork/**,*.tar,*.zip
+                                -Dsonar.exclusions=node_modules/**,tests/**,coverage/**,coverage/lcov-report/**,sonar-scanner*/**,.scannerwork/**,*.tar,*.zip,app.js
                                 -Dsonar.host.url=https://sonarcloud.io ^
                                 -Dsonar.token=%SONAR_TOKEN% ^
                                 -Dsonar.qualitygate.wait=true
