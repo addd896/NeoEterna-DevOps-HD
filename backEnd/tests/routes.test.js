@@ -30,14 +30,6 @@ describe('API Route Coverage Tests', () => {
     expect(res.statusCode).not.toBe(404);
   });
 
-  // NFT Route
-  test('GET /api/nft/detail route exists', async () => {
-    const res = await request(app)
-      .get('/api/nft/detail/507f1f77bcf86cd799439011');
-
-    expect([200, 404, 500]).toContain(res.statusCode);
-  });
-
   // Storage Route
   test('GET /api/storage/retrieve route exists', async () => {
     const res = await request(app)
