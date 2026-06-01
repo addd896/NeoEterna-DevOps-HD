@@ -7,16 +7,20 @@
     "test": "jest --forceExit",
     "test:coverage": "jest --coverage --forceExit",
     "dev": "nodemon app.js"
-   },
-   "jest": {
+  },
+  "jest": {
     "collectCoverageFrom": [
-        "controllers/**/*.js",
-        "models/**/*.js",
-        "routes/**/*.js",
-        "middleware/**/*.js"
+      "controllers/**/*.js",
+      "models/**/*.js",
+      "routes/**/*.js",
+      "middleware/**/*.js"
     ],
-    "coverageReporters": ["lcov", "text", "clover"]
-   },
+    "coverageReporters": [
+      "lcov",
+      "text",
+      "clover"
+    ]
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
@@ -43,6 +47,7 @@
     "ethers": "^6.13.5",
     "hardhat": "^2.22.19",
     "jest": "^30.4.2",
-    "nodemon": "^3.1.9"
+    "nodemon": "^3.1.9",
+    "supertest": "^7.2.2"
   }
 }
