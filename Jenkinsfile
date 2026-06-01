@@ -38,11 +38,13 @@ pipeline {
                 echo 'Tool: Jest - Unit + Integration Tests'
                 dir('backEnd') {
                     bat 'npm test'
+                    bat 'npm run test:coverage'
                 }
             }
             post {
                 success {
-                    echo 'Test Stage Complete- pipeline proceeding'
+                    echo 'Test Stage Complete: coverage report generated-pipeline proceeding'
+                    echo 'Coverage report: backEnd/coverage/lcov.info'
                 }
                 failure {
                     echo 'Tests failed - pipeline will not proceed to deployment'
@@ -157,11 +159,15 @@ pipeline {
                         --web.enable-lifecycle
                     echo Prometheus started with custom config and alert rules
                 '''
-                bat 'ping -n 6 127.0.0.1 > nul'
-                bat 'curl -s http://localhost:9090/-/ready || echo Prometheus starting up'
-                echo "Alert rules active: ServiceDown (critical), HighMemoryUsage (warning)"
-                echo "Metrics: http://localhost:9090"
-                echo "Rules: http://localhost:9090/api/v1/rules"
+        bat 'ping -n 6 127.0.0.1 > nul'
+        bat 'curl -s http://localhost:9090/-/ready || echo Prometheus starting up'
+        bat 'curl -s http://localhost:9090/api/v1/rules || echo Rules loading'
+        bat 'curl -s http://localhost:9090/api/v1/alerts || echo Alerts loading'
+        echo "Incident simulation: ServiceDown alert fires when up==0 for 1 min"
+        echo "Alert rules active: ServiceDown (critical), HighMemoryUsage (warning)"
+        echo "Metrics: http://localhost:9090"
+        echo "Rules: http://localhost:9090/api/v1/rules"
+        echo "Alerts: http://localhost:9090/api/v1/alerts"
             }
         }
 

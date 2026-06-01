@@ -5,8 +5,18 @@
   "main": "app.js",
   "scripts": {
     "test": "jest --forceExit",
+    "test:coverage": "jest --coverage --forceExit",
     "dev": "nodemon app.js"
-  },
+   },
+   "jest": {
+    "collectCoverageFrom": [
+        "controllers/**/*.js",
+        "models/**/*.js",
+        "routes/**/*.js",
+        "middleware/**/*.js"
+    ],
+    "coverageReporters": ["lcov", "text", "clover"]
+   },
   "keywords": [],
   "author": "",
   "license": "ISC",
