@@ -27,13 +27,15 @@ const storage = multer.memoryStorage(); // Store files in memory for encryption
 const upload = multer({ storage });
 
 // MongoDB Connection
+if (process.env.NODE_ENV !== "test") {
 mongoose.connect(process.env.MONGO_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 })
+
 .then(() => console.log("✅ MongoDB connected"))
 .catch((err) => console.error("❌ MongoDB connection error:", err));
-
+}
 // Import routes
 const capsuleRoutes = require("./routes/capsuleRoutes");
 const storageRoutes = require("./routes/storageRoutes");
@@ -59,9 +61,10 @@ app.get("/api/health", (req, res) => {
 });
 
 // Start unlock scheduler
+if (process.env.NODE_ENV !== "test") {
 const startScheduler = require('./tasks/scheduler');
 startScheduler();
-
+}
 // Start server
 const PORT = process.env.PORT || 5000;
 

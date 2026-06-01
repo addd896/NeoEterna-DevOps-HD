@@ -30,7 +30,7 @@ describe('API Route Coverage Tests', () => {
   });
 
   // NFT Routes
-  test('GET /api/nft/detail/test route exists', async () => {
+  test('GET /api/nft/detail/507f1f77bcf86cd799439011', async () => {
     const res = await request(app)
       .get('/api/nft/detail/test');
 
