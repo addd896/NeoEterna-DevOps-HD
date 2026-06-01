@@ -4,3 +4,7 @@ node_modules
 sonar-scanner*
 sonar-scanner.zip
 .scannerwork
+coverage
+.git
+*.tar
+*.zip
